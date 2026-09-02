@@ -142,8 +142,6 @@ let jogador;
 
 let venom;
 
-let moedas = [];
-
 let teiasBrancas = [];
 
 let teiasPretas = [];
@@ -277,7 +275,7 @@ function() {
 };
 
 imagemCenario.src =
-    "./fundo.png";
+    "./loud.png";
 
 
 /* ============================================================
@@ -455,8 +453,6 @@ canvas.addEventListener(
             pegarMouse(event);
 
 
-        /* SELEÇÃO */
-
         if (
             estado === "selecionando"
         ) {
@@ -470,8 +466,6 @@ canvas.addEventListener(
 
         }
 
-
-        /* JOGO */
 
         if (
             estado !== "jogando"
@@ -523,8 +517,6 @@ SELEÇÃO
 
 function desenharSelecao() {
 
-    /* FUNDO */
-
     const gradiente =
         ctx.createLinearGradient(
             0,
@@ -553,8 +545,6 @@ function desenharSelecao() {
         HEIGHT
     );
 
-
-    /* TÍTULO */
 
     texto(
         "ESCOLHA SEU HOMEM-ARANHA",
@@ -610,8 +600,6 @@ function desenharSelecao() {
             );
 
 
-        /* CARD */
-
         ctx.fillStyle =
             "#151923";
 
@@ -622,8 +610,6 @@ function desenharSelecao() {
             altura
         );
 
-
-        /* BORDA */
 
         ctx.strokeStyle =
             "#3f4657";
@@ -637,8 +623,6 @@ function desenharSelecao() {
             altura
         );
 
-
-        /* NÚMERO */
 
         ctx.fillStyle =
             "#e32632";
@@ -665,8 +649,6 @@ function desenharSelecao() {
             true
         );
 
-
-        /* IMAGEM */
 
         if (
             personagem.carregada
@@ -699,8 +681,6 @@ function desenharSelecao() {
         }
 
 
-        /* NOME */
-
         texto(
             personagem.nome,
             x + largura / 2,
@@ -710,8 +690,6 @@ function desenharSelecao() {
             true
         );
 
-
-        /* SELECIONADO */
 
         if (
             personagemSelecionado ===
@@ -897,12 +875,6 @@ function selecionarPersonagem(indice) {
         personagem;
 
 
-    console.log(
-        "Personagem escolhido:",
-        personagem.nome
-    );
-
-
     iniciarJogo();
 
 }
@@ -928,8 +900,6 @@ function iniciarJogo() {
 
     efeitos =
         [];
-
-    criarMoedas();
 
     estado =
         "jogando";
@@ -964,9 +934,15 @@ class Jogador {
         this.vida =
             VIDA_MAX_JOGADOR;
 
-        this.moedas = 0;
-
         this.pontos = 0;
+
+        /* SISTEMA DE XP */
+
+        this.nivel = 1;
+
+        this.xp = 0;
+
+        this.xpProximoNivel = 500;
 
         this.energia =
             ENERGIA_MAX;
@@ -978,6 +954,63 @@ class Jogador {
         this.cooldownDash = 0;
 
         this.ataqueAereo = 0;
+
+    }
+
+
+    /* ========================================================
+    XP E NÍVEL
+    ======================================================== */
+
+    ganharXP(valor) {
+
+        this.xp += valor;
+
+
+        while (
+            this.xp >=
+            this.xpProximoNivel
+        ) {
+
+            this.xp -=
+                this.xpProximoNivel;
+
+            this.nivel++;
+
+
+            this.xpProximoNivel =
+                500 +
+                (
+                    this.nivel - 1
+                ) * 250;
+
+
+            /* RECOMPENSAS */
+
+            this.vida =
+                Math.min(
+                    this.vida + 1,
+                    VIDA_MAX_JOGADOR
+                );
+
+
+            this.energia =
+                ENERGIA_MAX;
+
+
+            criarEfeito(
+
+                this.x +
+                this.largura / 2,
+
+                this.y +
+                this.altura / 2,
+
+                "#b000ff"
+
+            );
+
+        }
 
     }
 
@@ -1742,6 +1775,10 @@ class Venom {
 
         jogador.pontos += 150;
 
+        /* XP POR DANO */
+
+        jogador.ganharXP(100);
+
 
         criarEfeito(
 
@@ -1780,6 +1817,10 @@ class Venom {
             this.vivo = false;
 
             jogador.pontos += 2000;
+
+            /* XP POR DERROTAR VENOM */
+
+            jogador.ganharXP(1000);
 
         }
 
@@ -2354,139 +2395,6 @@ class TeiaPreta {
 
 
 /* ============================================================
-MOEDA
-============================================================ */
-
-class Moeda {
-
-    constructor(x, y) {
-
-        this.x = x;
-
-        this.y = y;
-
-        this.coletada = false;
-
-        this.tempo =
-            Math.random() * 100;
-
-    }
-
-
-    atualizar() {
-
-        if (
-            this.coletada
-        ) {
-
-            return;
-
-        }
-
-
-        this.tempo += 0.08;
-
-
-        const distancia =
-            Math.hypot(
-
-                jogador.centro().x -
-                this.x,
-
-                jogador.centro().y -
-                this.y
-
-            );
-
-
-        if (
-            distancia < 45
-        ) {
-
-            this.coletada = true;
-
-            jogador.moedas++;
-
-            jogador.pontos += 100;
-
-            jogador.energia += 15;
-
-
-            if (
-                jogador.energia >
-                ENERGIA_MAX
-            ) {
-
-                jogador.energia =
-                    ENERGIA_MAX;
-
-            }
-
-
-            criarEfeito(
-
-                this.x,
-                this.y,
-                "#ffd000"
-
-            );
-
-        }
-
-    }
-
-
-    desenhar() {
-
-        if (
-            this.coletada
-        ) {
-
-            return;
-
-        }
-
-
-        const movimento =
-            Math.sin(this.tempo) * 4;
-
-
-        ctx.fillStyle =
-            "#ffd000";
-
-
-        ctx.beginPath();
-
-        ctx.arc(
-
-            this.x,
-
-            this.y +
-            movimento,
-
-            11,
-
-            0,
-            Math.PI * 2
-
-        );
-
-        ctx.fill();
-
-
-        ctx.strokeStyle =
-            "#fff18a";
-
-        ctx.lineWidth = 3;
-
-        ctx.stroke();
-
-    }
-
-}
-
-
-/* ============================================================
 EFEITO
 ============================================================ */
 
@@ -2775,6 +2683,8 @@ function atacarComClique(
 
             jogador.pontos += 50;
 
+            jogador.ganharXP(50);
+
 
             criarEfeito(
 
@@ -2932,51 +2842,6 @@ function desenharCenario() {
 
 
 /* ============================================================
-MOEDAS
-============================================================ */
-
-function criarMoedas() {
-
-    moedas = [];
-
-
-    const posicoes = [
-
-        [80,450],
-        [180,390],
-        [280,450],
-        [360,350],
-        [470,250],
-        [560,330],
-        [650,420],
-        [730,350],
-        [820,450],
-        [920,390],
-        [430,450],
-        [580,450]
-
-    ];
-
-
-    for (
-        const pos of posicoes
-    ) {
-
-        moedas.push(
-
-            new Moeda(
-                pos[0],
-                pos[1]
-            )
-
-        );
-
-    }
-
-}
-
-
-/* ============================================================
 COLISÃO COM VENOM
 ============================================================ */
 
@@ -3032,14 +2897,14 @@ HUD
 function desenharHUD() {
 
     ctx.fillStyle =
-        "rgba(0,0,0,0.78)";
+        "rgba(0,0,0,0.82)";
 
 
     ctx.fillRect(
         15,
         15,
-        390,
-        155
+        410,
+        185
     );
 
 
@@ -3166,30 +3031,95 @@ function desenharHUD() {
     );
 
 
+    /* ========================================================
+    NÍVEL
+    ======================================================== */
+
     texto(
 
-        "Moedas: " +
-        jogador.moedas,
+        "NÍVEL " +
+        jogador.nivel,
 
         30,
         120,
 
         18,
-        "#ffd000"
+        "#b000ff"
 
     );
 
 
     texto(
 
+        "XP",
+
+        145,
+        120,
+
+        15,
+        "#aaaaaa"
+
+    );
+
+
+    /* BARRA DE XP */
+
+    ctx.fillStyle =
+        "#222";
+
+    ctx.fillRect(
+        175,
+        108,
+        180,
+        15
+    );
+
+
+    ctx.fillStyle =
+        "#b000ff";
+
+
+    ctx.fillRect(
+
+        175,
+        108,
+
+        180 *
+        jogador.xp /
+        jogador.xpProximoNivel,
+
+        15
+
+    );
+
+
+    texto(
+
+        jogador.xp +
+        "/" +
+        jogador.xpProximoNivel,
+
+        365,
+        120,
+
+        13,
+        "white"
+
+    );
+
+
+    /* PONTOS */
+
+    texto(
+
         "Pontos: " +
         jogador.pontos,
 
-        190,
-        120,
+        30,
+        150,
 
         18,
-        "#fff"
+        "#ffffff"
 
     );
 
@@ -3199,7 +3129,7 @@ function desenharHUD() {
         "E = Especial | SHIFT = Esquiva",
 
         30,
-        150,
+        178,
 
         14,
         "#aaa"
@@ -3331,14 +3261,29 @@ function telaFinal(
 
     texto(
 
-        "Moedas: " +
-        jogador.moedas,
+        "Nível alcançado: " +
+        jogador.nivel,
 
         WIDTH / 2,
         330,
 
         24,
-        "#ffd000",
+        "#b000ff",
+        true
+
+    );
+
+
+    texto(
+
+        "XP: " +
+        jogador.xp,
+
+        WIDTH / 2,
+        365,
+
+        22,
+        "#aaaaaa",
         true
 
     );
@@ -3349,7 +3294,7 @@ function telaFinal(
         "Pressione R para escolher novamente",
 
         WIDTH / 2,
-        400,
+        420,
 
         25,
         "white",
@@ -3382,14 +3327,7 @@ function atualizar() {
     verificarColisaoVenom();
 
 
-    for (
-        const moeda of moedas
-    ) {
-
-        moeda.atualizar();
-
-    }
-
+    /* TEIAS DO JOGADOR */
 
     for (
         const teia of teiasBrancas
@@ -3409,6 +3347,8 @@ function atualizar() {
         );
 
 
+    /* TEIAS DO VENOM */
+
     for (
         const teia of teiasPretas
     ) {
@@ -3426,6 +3366,8 @@ function atualizar() {
 
         );
 
+
+    /* EFEITOS */
 
     for (
         const efeito of efeitos
@@ -3487,9 +3429,7 @@ function desenhar() {
     );
 
 
-    /* ========================================================
-    SELEÇÃO
-    ======================================================== */
+    /* SELEÇÃO */
 
     if (
         estado === "selecionando"
@@ -3502,22 +3442,9 @@ function desenhar() {
     }
 
 
-    /* ========================================================
-    CENÁRIO
-    ======================================================== */
+    /* CENÁRIO */
 
     desenharCenario();
-
-
-    /* MOEDAS */
-
-    for (
-        const moeda of moedas
-    ) {
-
-        moeda.desenhar();
-
-    }
 
 
     /* TEIAS DO VENOM */
